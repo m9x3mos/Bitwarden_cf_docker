@@ -1,0 +1,73 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    ports:
+     - 9445:80 #map any custom port to use (replace 9445 not 80)
+     - '127.0.0.1:8200:80'
+    volumes:
+     - /tank/bitwarden/app/bit:/data:rw
+    environment:
+     - PUID=1000
+     - PGID=1000
+     - WEBSOCKET_ENABLED=true
+     - SIGNUPS_ALLOWED=true
+     - SMTP_HOST=smtp.gmail.com
+     - SMTP_FROM=<from address>
+     - SMTP_PORT=587
+     - SMTP_SECURITY=starttls
+     - SMTP_USERNAME=<username>
+     - SMTP_PASSWORD=<password>
+     - DOMAIN=https://<domain>
+     - TZ=America/New_York
+     - ADMIN_TOKEN=MySuperSecretTokenHere
+  backup:
+    image: ttionya/vaultwarden-backup:latest
+    restart: always
+    environment:
+       RCLONE_REMOTE_NAME: 'Local'
+       RCLONE_REMOTE_DIR: '/backupFiles/local/'
+      #RCLONE_GLOBAL_FLAG: ''
+       CRON: '0 20 * * *'
+       ZIP_ENABLE: 'TRUE'
+      ZIP_PASSWORD: 'WHEREISMYPASSWORD?'
+       ZIP_TYPE: 'zip'
+       BACKUP_FILE_SUFFIX: '%Y%m%d'
+       BACKUP_KEEP_DAYS: 10
+       MAIL_SMTP_ENABLE: 'TRUE'
+       MAIL_SMTP_VARIABLES: "-S smtp-use-starttls -S smtp=smtp://smtp.gmail.com:587 -S smtp-auth=login -S smtp-auth-user=<username> -S smtp-auth-password=<password> -S from=<from address> -a /backupFiles/local/backup.$(date +'%Y%m%d').zip"
+       MAIL_TO: '<mail to address>'
+       MAIL_WHEN_SUCCESS: 'TRUE'
+       MAIL_WHEN_FAILURE: 'TRUE'
+       TIMEZONE: 'America/New_York'
+    volumes:
+      - /tank/bitwarden/app/bit:/bitwarden/data/
+      - /tank/bitwarden/backupData/bit:/config/
+      - /tank/bitwarden/backup:/backupFiles/
+  watchtower:
+    # Watchtower will pull down your new image, gracefully shut down your existing container
+    # and restart it with the same options that were used when it was deployed initially
+    # https://github.com/containrrr/watchtower
+    image: containrrr/watchtower
+    restart: always
+    container_name: watchtower
+    depends_on:
+    - vaultwarden
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+    - WATCHTOWER_CLEANUP=true
+    - WATCHTOWER_SCHEDULE=0 0 3 ? * 0
+    - TZ=America/New_York
+
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: <token here>
+# run this to confgure rclone, just update the path in the mount bind.
+# do this right after container is started or backups will fail till it is complete.
+# sudo docker run --rm -it --mount type=bind,source=/tank/bitwarden/backupData/bit,target=/config/  ttionya/vaultwarden-backup:latest rclone config
