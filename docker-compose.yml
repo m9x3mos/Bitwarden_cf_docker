@@ -36,7 +36,7 @@ services:
        BACKUP_FILE_SUFFIX: '%Y%m%d'
        BACKUP_KEEP_DAYS: 10
        MAIL_SMTP_ENABLE: 'TRUE'
-       MAIL_SMTP_VARIABLES: "-S smtp-use-starttls -S smtp=smtp://smtp.gmail.com:587 -S smtp-auth=login -S smtp-auth-user=<username> -S smtp-auth-password=<password> -S from=<from address> -a /backupFiles/local/backup.$(date +'%Y%m%d').zip"
+       MAIL_SMTP_VARIABLES: "-S smtp-use-starttls -S smtp=smtp://smtp.gmail.com:587 -S smtp-auth=login -S smtp-auth-user=<username> -S smtp-auth-password=<password> -S from=<from address> -a /backupFiles/local/backup.$(date +'%Y%m%d').zip -s 'Vaultwarden Backup Vault '$(date +'%m/%d/%Y')"
        MAIL_TO: '<mail to address>'
        MAIL_WHEN_SUCCESS: 'TRUE'
        MAIL_WHEN_FAILURE: 'TRUE'
